@@ -9,7 +9,7 @@ from langchain.document_loaders import Docx2txtLoader
 from langchain.document_loaders import UnstructuredPowerPointLoader
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter # 문맥에 따라 스플릿하게끔 
-from langchain_openai import OpenAIEmbeddings # 다국어 모델 임베딩으로 
+from langchain.embeddings import OpenAIEmbeddings
 
 from langchain.memory import ConversationBufferMemory # 몇개까지의 대화를 메모리로 넣어줄 것인
 from langchain.vectorstores import FAISS # 벡터스토어는 임시벡터저장소 사용 속도빠름. 
