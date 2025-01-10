@@ -19,48 +19,45 @@ from langchain.memory import StreamlitChatMessageHistory # 2
 
 def main():
     st.set_page_config(
-    page_title="B+",
-    page_icon=":books:")
+        page_title="B+",
+        page_icon=":books:"
+    )
 
     st.title("_Private Data :red[test B+]_ :books:")
 
-    if "conversation" not in st.session_state: # session_state.conversation 미리 정의 해주기, 에러 방지용 
+    if "conversation" not in st.session_state:
         st.session_state.conversation = None
 
-    if "chat_history" not in st.session_state: # session_state.chat_history 미리 정의 해주기, 에러 방지용 
+    if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    if "processComplete" not in st.session_state: # session_state.processComplete 미리 정의 해주기, 에러 방지용 
+    if "processComplete" not in st.session_state:
         st.session_state.processComplete = None
 
-    with st.sidebar: # 구성요소 안에 하위 구성요소가 집행되어야 하는 경우 with 구문 사용 ex)사이드바 넣기 
-        uploaded_files =  st.file_uploader("Upload your file",type=['pdf','docx'],accept_multiple_files=True)
-        openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-        process = st.button("Process")
-    if process: # process 버튼을 누르면 
-        if not openai_api_key: # open_api가 입력이 안되있으면 
-            st.info("Please add your OpenAI API key to continue.") # api 입력하세요 
+    with st.sidebar:
+        uploaded_files = st.file_uploader("파일 업로드", type=['pdf', 'docx'], accept_multiple_files=True)
+        openai_api_key = st.text_input("OpenAI API Key 입력", key="chatbot_api_key", type="password")
+        process = st.button("파일 처리")
+    
+    if process:
+        if not openai_api_key:
+            st.info("OpenAI API 키를 입력하세요.")
             st.stop()
-        files_text = get_text(uploaded_files) # 입력이 되어있으면 업로드된 파일을 텍스트로 변환
-        text_chunks = get_text_chunks(files_text) # 텍스트를 청크로 나눈다.
-        vetorestore = get_vectorstore(text_chunks) # 청크를 벡터화한다.
-     
-        st.session_state.conversation = get_conversation_chain(vetorestore,openai_api_key) # 벡터스토어를 이용하여
-# llm이 답변할 수 있도록 체인 구성
+        
+        files_text = get_text(uploaded_files)
+        text_chunks = get_text_chunks(files_text)
+        vectorestore = get_vectorstore(text_chunks, openai_api_key)
+        st.session_state.conversation = get_conversation_chain(vectorestore, openai_api_key)
         st.session_state.processComplete = True
 
-    if 'messages' not in st.session_state: # 스트림릿 페이지의 인사말 UI
-        st.session_state['messages'] = [{"role": "assistant", 
-                                        "content": "B+은 맞자!"}] 
+    if 'messages' not in st.session_state:
+        st.session_state['messages'] = [{"role": "assistant", "content": "B+은 맞자!"}]
 
-    for message in st.session_state.messages: # 메세지들 마다 with 구문으로 묶어준다.
-        with st.chat_message(message["role"]): # 메세지의 롤에 따라서 
-            st.markdown(message["content"]) # 마크다운으로 묶어줄 것이다.
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    history = StreamlitChatMessageHistory(key="chat_messages") # 히스토리 부분을 정의해야 메모리를 가지고 컨텍스트를 고려
-
-    # Chat logic
-    if query := st.chat_input("질문을 입력해주세요."):
+    if query := st.chat_input("질문을 입력하세요."):
         st.session_state.messages.append({"role": "user", "content": query})
 
         with st.chat_message("user"):
@@ -69,22 +66,21 @@ def main():
         with st.chat_message("assistant"):
             chain = st.session_state.conversation
 
-            with st.spinner("Thinking..."):
-                result = chain({"question": query})
-                with get_openai_callback() as cb:
-                    st.session_state.chat_history = result['chat_history']
-                response = result['answer']
-                source_documents = result['source_documents']
+            with st.spinner("생각 중..."):
+                try:
+                    result = chain({"query": query})  # 입력 키를 "query"로 변경
+                    response = result.get("answer", "응답을 생성할 수 없습니다.")
+                    source_documents = result.get("source_documents", [])
 
-                st.markdown(response)
-                with st.expander("참고 문서 확인"):
-                    st.markdown(source_documents[0].metadata['source'], help = source_documents[0].page_content)
-                    st.markdown(source_documents[1].metadata['source'], help = source_documents[1].page_content)
-                    st.markdown(source_documents[2].metadata['source'], help = source_documents[2].page_content)
-                    
+                    st.markdown(response)
+                    if source_documents:
+                        with st.expander("참고 문서 확인"):
+                            for doc in source_documents:
+                                st.markdown(f"**출처:** {doc.metadata['source']}")
+                                st.markdown(doc.page_content)
+                except Exception as e:
+                    st.error(f"오류 발생: {str(e)}")
 
-
-# Add assistant message to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 def tiktoken_len(text):
