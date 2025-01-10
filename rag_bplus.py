@@ -125,14 +125,11 @@ def get_text_chunks(text):
     return chunks
 
 
-def get_vectorstore(text_chunks):
-    # OpenAI Embedding 모델 초기화
+def get_vectorstore(text_chunks, openai_api_key):
     embeddings = OpenAIEmbeddings(
-        model='text-embedding-ada-002',  # OpenAI의 최신 추천 모델
-        openai_api_key=openai_api_key  # 반드시 OpenAI API 키를 입력해야 합니다.
+        model='text-embedding-ada-002',
+        openai_api_key=openai_api_key
     )
-    
-    # FAISS를 사용한 벡터 DB 생성
     vectordb = FAISS.from_documents(text_chunks, embeddings)
     return vectordb
 
