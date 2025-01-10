@@ -7,5 +7,7 @@ faiss-cpu
 tiktoken
 openai
 pypdf
+pypdf2
 loguru
 docs2txt
+streamlit
